@@ -60,7 +60,7 @@ impl <'a> Scanner<'a> {
     }
 
     fn push_token(&mut self, kind: TokenKind) {
-        let lexeme = &self.source[self.start as usize..self.current as usize];
+        let lexeme = &self.source[self.start as usize..(self.current+1) as usize];
         self.tokens.push(Token::new(kind, lexeme.to_string(), self.line));
     }
 
@@ -77,7 +77,9 @@ impl <'a> Scanner<'a> {
                 '+' => self.push_token(TokenKind::PLUS), 
                 '-' => self.push_token(TokenKind::MINUS), 
                 '*' => self.push_token(TokenKind::STAR), 
-                _ => todo!("scanner not implemented")
+                '/' => self.push_token(TokenKind::SLASH),
+                '\n' => self.line += 1,
+                _ => todo!("scanner not implemented for {}", c)
             }
         }
 
