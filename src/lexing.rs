@@ -59,6 +59,24 @@ impl <'a> Scanner<'a> {
         self.current >= self.source.len() as u32
     }
 
+    fn next_is(&mut self, c: char) -> bool {
+        if self.has_ended() {
+            return false;
+        }
+
+        if let Some(symbol) = self.source.chars().nth((self.current + 1) as usize) {
+            if symbol == c {
+                self.current += 1;
+                return true;
+            }
+        }
+        false
+    }
+
+    fn peek(&self) -> Option<char> {
+        return self.source.chars().nth((self.current + 1) as usize)
+    }
+
     fn push_token(&mut self, kind: TokenKind) {
         let lexeme = &self.source[self.start as usize..(self.current+1) as usize];
         self.tokens.push(Token::new(kind, lexeme.to_string(), self.line));
@@ -77,8 +95,52 @@ impl <'a> Scanner<'a> {
                 '+' => self.push_token(TokenKind::PLUS), 
                 '-' => self.push_token(TokenKind::MINUS), 
                 '*' => self.push_token(TokenKind::STAR), 
-                '/' => self.push_token(TokenKind::SLASH),
                 '\n' => self.line += 1,
+                '/' => {
+                    if self.next_is('/') {
+                        while self.peek().unwrap() != '\n' && !self.has_ended() {
+                            self.current += 1;
+                        }
+                    } else {
+                        self.push_token(TokenKind::SLASH);
+                    }
+                },
+                '=' => {
+                    let kind = if self.next_is('=') { TokenKind::EQUAL_EQUAL } else { TokenKind::EQUAL };
+                    self.push_token(kind);
+                },
+                '!' => {
+                    let kind = if self.next_is('=') { TokenKind::BANG_EQUAL } else { TokenKind::BANG };
+                    self.push_token(kind);
+                },
+                '>' => {
+                    let kind = if self.next_is('=') { TokenKind::GREATER_EQUAL } else { TokenKind::GREATER };
+                    self.push_token(kind);
+                },
+                '<' => {
+                    let kind = if self.next_is('=') { TokenKind::LESS_EQUAL } else { TokenKind::LESS };
+                    self.push_token(kind);
+                },
+                '"' => {
+                    while !self.next_is('"') && !self.has_ended() {
+                        if self.peek() == Some('\n') {
+                            self.line += 1;
+                        }
+                        self.current += 1;
+                    }
+                    if self.has_ended() {
+                        // @TODO: use better error handling
+                        panic!("string with unclosed delimeters");
+                    }
+                    // trick to trim " from the string
+                    self.start += 1;
+                    self.current -= 1;
+                    self.push_token(TokenKind::STRING);
+
+                    // we need to increment again so we don't process the same char again
+                    self.current += 1;
+                },
+                ' ' | '\r' | '\t' => {},
                 _ => todo!("scanner not implemented for {}", c)
             }
         }
