@@ -76,6 +76,10 @@ impl <'a> Scanner<'a> {
     fn peek(&self) -> Option<char> {
         return self.source.chars().nth((self.current + 1) as usize)
     }
+    
+    fn peek_next(&self) -> Option<char> {
+        return self.source.chars().nth((self.current + 2) as usize)
+    }
 
     fn push_token(&mut self, kind: TokenKind) {
         let lexeme = &self.source[self.start as usize..(self.current+1) as usize];
@@ -141,7 +145,27 @@ impl <'a> Scanner<'a> {
                     self.current += 1;
                 },
                 ' ' | '\r' | '\t' => {},
-                _ => todo!("scanner not implemented for {}", c)
+                _ => {
+                    if c.is_ascii_digit() {
+                        while self.peek().is_some() && self.peek().unwrap().is_ascii_digit() {
+                            self.current += 1;
+                        }
+                        if self.peek().is_some() && self.peek().unwrap() == '.' {
+                            if self.peek_next().is_some() && self.peek_next().unwrap().is_ascii_digit() {
+                                self.current += 1;
+                                while self.peek().is_some() && self.peek().unwrap().is_ascii_digit() {
+                                    self.current += 1;
+                                }
+                            } else {
+                                // @TODO: use better error handling
+                                panic!("wrong number format");
+                            }
+                        }
+                        self.push_token(TokenKind::NUMBER) 
+                    } else {
+                        todo!("scanner not implemented for {}", c);
+                    }
+                }
             }
         }
 
